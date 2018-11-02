@@ -2,7 +2,7 @@
 
 import numpy as np
 from sklearn.utils import shuffle
-
+from torch import nn
 
 ''' 
 
@@ -34,6 +34,27 @@ W2 = W2 + lr * dW2
 
 '''
 
+
+class TorchNet(nn.Module):
+    ''' Same network using PyTorch '''
+    
+    def __init__(self, in_f, out_c, lay_size=100, print_sizes=False):
+        super(TorchNet, self).__init__()
+        
+        self.fc1 = nn.Linear(in_f, lay_size)
+        self.fc2 = nn.Linear(lay_size, out_c)
+        self.relu = nn.ReLU(inplace=True)
+        self.p = print_sizes            
+        
+    def forward(self, x):
+         
+        if self.p: print("\t FC1 input size: ", x.size())        
+        x = self.relu(self.fc1(x))
+        if self.p: print('\t FC1 output size: ', x.size())
+        x = self.fc2(x)
+        if self.p: print("\t FC2 output size: ", x.size())
+        return x
+    
 
 class Network():
     '''
