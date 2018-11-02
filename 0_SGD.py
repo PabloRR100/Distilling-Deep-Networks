@@ -30,11 +30,6 @@ df_train = to_df(X_train, y_train)
 df_test = to_df(X_test, y_test)
 
 #scatterplot([df, df_train, df_test], ['Original data', 'Training set', 'Test set'])
-#
-#from sklearn.preprocessing import MinMaxScaler as MMS
-#scaler = MMS()
-#X_train = scaler.fit_transform(X_train)
-#X_test = scaler.transform(X_test)
 
 # NEURAL NETWORK
 # --------------
@@ -53,26 +48,76 @@ valid_loss = list()
 valid_accy = list()
 
 
-from networks import Network, SGD_Optimizer
+from networks import Network, SGD_Optimizer, TorchNet
 
-net = Network(inp_dim, n_class, lay_size, learning_rate)
-optimizer = SGD_Optimizer(net, EPOCHS)
+#net = Network(inp_dim, n_class, lay_size, learning_rate)
+#optimizer = SGD_Optimizer(net, EPOCHS)
+#
+#
+## Training (and validating)
+#for epoch in range(EPOCHS):
+#    
+#    ## reset network ??
+#    
+#    
+#    # Training
+#    l, a = optimizer.minibatch_SGD(X_train, y_train, BATCHSIZE)
+#    train_loss.append(l)
+#    train_accy.append(a)
+#    
+#    if epoch % 5 == 0:
+#        print(net.W1[:2,:2])
+#        
+#    
+#    # Validation
+#    y_pred = list()
+#    current_loss = list()
+#    for i, (x,c) in enumerate(zip(X_test, y_test)):
+#        
+#        # One hot encoded to calculate the loss
+#        y_true = np.zeros(n_class)
+#        y_true[int(c)] = 1.
+#        _, prob = net.forward(x)
+#        current_loss.append(net.crossentropy(prob, y_test[i]))
+#        
+#        # Accuracy
+#        y = np.argmax(prob)
+#        y_pred.append(y)
+#    
+#    # Calculate loss and accy
+#    valid_loss.append(np.mean(current_loss))
+#    valid_accy.append((y_pred == y_test).sum() / y_test.size)
+#    
+#    if epoch % 5 == 0:
+#        print('Epoch: {}, Loss: {}, Accy: {}'.format(epoch, l, a))
 
+
+
+# Training PyTorch Model
+import torch.optim as optim
+from torch.autograd import Variable
+
+torchnet = TorchNet(inp_dim, n_class, lay_size)
+optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum=0, weight_decay=0)
+
+
+def get_batch(self, X, y, i, BS):
+        return Variable(X[i:i + BS]), Variable(y[i:i + BS])
 
 # Training (and validating)
-for epoch in range(EPOCHS):
+for epoch in range(EPOCHS):    
     
-    ## reset network ??
-    
-    
-    # Training
-    l, a = optimizer.minibatch_SGD(X_train, y_train, BATCHSIZE)
-    train_loss.append(l)
-    train_accy.append(a)
-    
-    if epoch % 5 == 0:
-        print(net.W1[:2,:2])
+    # Get batches
+    X, y = shuffle(X, y) # See them in another order
         
+        # Run minibaches from the training dataset
+        for i in range(0, X.shape[0], BS):
+            
+            # For every single pair (X,y) on that chunk
+            X_mini, y_mini = self.get_batch(X, y, i, BS)
+    
+    
+    
     
     # Validation
     y_pred = list()
@@ -95,6 +140,8 @@ for epoch in range(EPOCHS):
     
     if epoch % 5 == 0:
         print('Epoch: {}, Loss: {}, Accy: {}'.format(epoch, l, a))
+
+
 
 
 
