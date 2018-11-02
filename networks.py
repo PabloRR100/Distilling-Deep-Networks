@@ -38,7 +38,7 @@ W2 = W2 + lr * dW2
 class TorchNet(nn.Module):
     ''' Same network using PyTorch '''
     
-    def __init__(self, in_f, out_c, lay_size=100, print_sizes=False):
+    def __init__(self, in_f, out_c, lay_size=100, print_sizes=True):
         super(TorchNet, self).__init__()
         
         self.fc1 = nn.Linear(in_f, lay_size)
@@ -46,13 +46,21 @@ class TorchNet(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.p = print_sizes            
         
+        
+#    def trackweights(self, x):
+#        
+#        W1_mean = self.fc1.weight.data.mean()
+#        W1_var = self.fc1.weight.data.var()
+#        W2_mean = self.fc2.weight.data.mean()
+#        W2_var = self.fc2.weight.data.var()
+        
     def forward(self, x):
          
-        if self.p: print("\t FC1 input size: ", x.size())        
+#        if self.p: print("\t FC1 input size: ", x.size())        
         x = self.relu(self.fc1(x))
-        if self.p: print('\t FC1 output size: ', x.size())
+#        if self.p: print('\t FC1 output size: ', x.size())
         x = self.fc2(x)
-        if self.p: print("\t FC2 output size: ", x.size())
+#        if self.p: print("\t FC2 output size: ", x.size())
         return x
     
 
