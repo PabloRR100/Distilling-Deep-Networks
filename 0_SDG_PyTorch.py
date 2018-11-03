@@ -9,7 +9,7 @@ Created on Thu Nov  1 09:47:02 2018
 '''
  - [~] Timeit one epoch pass scratch/torch sgd/momentum
  - [X] Compute hidden values sizes
- - 
+ - [] Track the saturation of every layer
 '''
 
 
@@ -50,7 +50,7 @@ learning_rate = 0.001
 n_class = len(np.unique(y_train))
 
 EPOCHS = 100
-BATCHSIZE = 64
+BATCHSIZE = 1
 
 
 

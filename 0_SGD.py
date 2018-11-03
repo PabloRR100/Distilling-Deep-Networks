@@ -7,9 +7,9 @@ Created on Thu Nov  1 09:47:02 2018
 
 ## TODO list
 '''
- - [~] Timeit one epoch pass scratch/torch sgd/momentum
+ - [] Timeit one epoch pass scratch/torch sgd/momentum
  - [X] Compute hidden values sizes
- - 
+ - [] Track the saturation of every layer
 '''
 
 
