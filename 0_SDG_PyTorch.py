@@ -10,6 +10,8 @@ Created on Thu Nov  1 09:47:02 2018
  - [~] Timeit one epoch pass scratch/torch sgd/momentum
  - [X] Compute hidden values sizes
  - [] Track the saturation of every layer
+ - [] Track plots of inference on test set at different times of the training:
+     - By saving a copy of the model each x epochs or by plotting every x epochs
 '''
 
 
@@ -49,9 +51,8 @@ lay_size = 100
 learning_rate = 0.001
 n_class = len(np.unique(y_train))
 
-EPOCHS = 100
-BATCHSIZE = 1
-
+EPOCHS = 10
+BATCHSIZE = 64
 
 
 pytorch = dict(train_loss = list(), train_accy = list(), 
@@ -79,16 +80,8 @@ torchnet = TorchNet(inp_dim, n_class, lay_size)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum=0, weight_decay=0)
 
-W1_stats = list()
-W2_stats = list()
-W1_scale = list()
-W2_scale = list()
-
-torch_stats = dict(W1_stats = W1_stats, W2_stats = W2_stats, 
-                   W1_scale = W1_scale, W2_scale = W2_scale)
 
 torchnet.train()
-from utils import ratioweights
 # Training (and validating)
 for epoch in range(20):    
             
@@ -110,11 +103,7 @@ for epoch in range(20):
         optimizer.step()
         
         # Collect stats 
-        W1_mean, W1_var, W2_mean, W2_var, ratio1, ratio2 = ratioweights(torchnet, learning_rate)
-        torch_stats['W1_stats'].append((W1_mean, W1_var))
-        torch_stats['W2_stats'].append((W2_mean, W2_var))
-        torch_stats['W1_scale'].append(ratio1)
-        torch_stats['W2_scale'].append(ratio2)
+        torchnet.collect_stats(learning_rate)
 
     # Compute and store epoch results
     correct, total = 0, 0
@@ -175,8 +164,10 @@ true_vs_pred(df_test, df_pred)
 # PyTorch Network Analysis
 # ------------------------
 
-W1_stats = torch_stats['W1_stats']
-W2_stats = torch_stats['W2_stats']
+net = torchnet
+
+W1_stats = net.W1['W1_stats']
+W2_stats = net.['W2_stats']
 W1_scale = torch_stats['W1_scale']
 W2_scale = torch_stats['W2_scale']
 

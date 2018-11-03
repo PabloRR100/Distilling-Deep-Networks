@@ -34,35 +34,77 @@ W2 = W2 + lr * dW2
 
 '''
 
+'''
+
+Tracking the Network
+====================
+
+Update ratio of weights
+-----------------------
+A rough heuristic is that this ratio should be somewhere around 1e-3. 
+If it is lower than this then the learning rate might be too low. 
+If it is higher then the learning rate is likely too high.
+
+'''
+
 
 class TorchNet(nn.Module):
     ''' Same network using PyTorch '''
     
-    def __init__(self, in_f, out_c, lay_size=100, print_sizes=True):
+    def __init__(self, in_f, out_c, lay_size=100, print_sizes=False):
         super(TorchNet, self).__init__()
         
         self.fc1 = nn.Linear(in_f, lay_size)
         self.fc2 = nn.Linear(lay_size, out_c)
         self.relu = nn.ReLU(inplace=True)
-        self.p = print_sizes            
+        self.p = print_sizes     
         
-#    def trackweights(self, x):
-#        
-#        W1_mean = self.fc1.weight.data.mean()
-#        W1_var = self.fc1.weight.data.var()
-#        W2_mean = self.fc2.weight.data.mean()
-#        W2_var = self.fc2.weight.data.var()
+        self.weight_stats = dict(
+                self.W1 = dict(mean = list(), var = list()),
+                self.W2 = dict(mean = list(), var = list()),
+                self.rW1 = list(),
+                self.rW2 = list(),
+                )
         
-    @profile
+        self.L1 = dict(mean = list(), var = list())
+        
+        
+#    @profile
     def forward(self, x):
          
-#        if self.p: print("\t FC1 input size: ", x.size())        
+        # Layer 1
+        if self.p: print("\t FC1 input size: ", x.size())        
         x = self.relu(self.fc1(x))
-#        if self.p: print('\t FC1 output size: ', x.size())
+        self.L1['mean'].append(float(x.mean()))
+        self.L1['var'].append(float(x.mean()))
+        
+        # Layer 2
+        if self.p: print('\t FC2 input size: ', x.size())
         x = self.fc2(x)
-#        if self.p: print("\t FC2 output size: ", x.size())
+        
+        if self.p: print("\t Output size: ", x.size())
         return x
     
+    def collect_stats(self, lr):
+        
+        self.W1['mean'].append(float(self.fc1.weight.data.mean()))
+        self.W1['var'].append(float(self.fc1.weight.data.var()))
+        self.W2['mean'].append(float(self.fc2.weight.data.mean()))
+        self.W2['var'].append(float(self.fc2.weight.data.var()))
+        
+        dW1 = self.fc1.weight.grad.numpy()
+        dW2 = self.fc2.weight.grad.numpy()
+        
+        W1_scale = np.linalg.norm(self.fc1.weight.grad)
+        update1 = -lr * dW1 
+        update_scale1 = np.linalg.norm(update1.ravel())
+        self.rW1.append(float(update_scale1 / W1_scale))
+        
+        W2_scale = np.linalg.norm(self.fc2.weight.grad)
+        update2 = -lr * dW2
+        update_scale2 = np.linalg.norm(update2.ravel())
+        self.rW2.append(float(update_scale2 / W2_scale))
+ 
 
 class Network():
     '''
@@ -96,30 +138,25 @@ class Network():
         x[x < 0] = 0
         return x
         
-    
     def softmax(self, x):
         return np.exp(x) / sum(np.exp(x))
-
-    
+  
     def crossentropy(self, p, y):
         return -np.sum(y * np.log(p+1e-9)) / p.shape[0]
-    
-    
+      
     def forward(self, x):
         a = x @ self.W1
         h = self.relu(a)
         z = h @ self.W2
         p = self.softmax(z)
         return h, p 
-    
-    
+      
     def backward(self, xs, hs, grads):
         dW2 = hs.T @ grads          # dL / dW2
         dh = grads @ self.W2.T      # dL / dh
         dh[hs <= 0] = 0             # dh / dh (through relu)
         dW1 = xs.T @ dh             # dL / dW1
         return dW1, dW2
-
 
     def update_weights(self, dW1, dW2):
         self.W1 = self.W1 + self.lr * dW1
