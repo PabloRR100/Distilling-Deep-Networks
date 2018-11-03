@@ -46,7 +46,6 @@ class TorchNet(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.p = print_sizes            
         
-        
 #    def trackweights(self, x):
 #        
 #        W1_mean = self.fc1.weight.data.mean()
@@ -54,6 +53,7 @@ class TorchNet(nn.Module):
 #        W2_mean = self.fc2.weight.data.mean()
 #        W2_var = self.fc2.weight.data.var()
         
+    @profile
     def forward(self, x):
          
 #        if self.p: print("\t FC1 input size: ", x.size())        
