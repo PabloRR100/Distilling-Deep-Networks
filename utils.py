@@ -60,9 +60,13 @@ def create_torch_dataset(inputs, labels, BS, shuffle):
 def normalize_gradients(a,b):
     
     from itertools import chain
+    from sklearn.preprocessing import MinMaxScaler
+
     def normalizeT(data):
-        return ((data - data.mean()) / data.max() - data.min())
-    
+#        return ((data - data.mean()) / data.max() - data.min())        
+        scaler = MinMaxScaler(feature_range=(-1,1))
+        return scaler.fit_transform(data)
+
     a = list(chain(*list(normalizeT(np.array(a).reshape(-1,1)))))
     b = list(chain(*list(normalizeT(np.array(b).reshape(-1,1)))))
     return a, b

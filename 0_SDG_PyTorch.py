@@ -48,10 +48,10 @@ df_test = to_df(X_test, y_test)
 
 inp_dim = 2
 lay_size = 100
-learning_rate = 0.001
+learning_rate = 0.1
 n_class = len(np.unique(y_train))
 
-EPOCHS = 10
+EPOCHS = 50
 BATCHSIZE = 64
 
 
@@ -82,7 +82,7 @@ optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum=0, weight_d
 
 torchnet.train()
 # Training (and validating)
-for epoch in range(20):    
+for epoch in range(EPOCHS):    
             
     # Run minibaches from the training dataset
     for i, (X, labels) in enumerate(tr_loader):
@@ -180,8 +180,8 @@ stast = pd.DataFrame(W1_stats)
 plt.figure(figsize=(15,15))
 plt.plot(range(len(stast['mean'])), stast['mean'])
 plt.fill_between(range(len(stast['mean'])), 
-                 stast['mean'] + stast['mean'] + stast['var'], 
-                 stast['mean'] + stast['mean'] - stast['var'], 
+                 stast['mean'] + stast['var'], 
+                 stast['mean'] - stast['var'], 
                  alpha=0.2, label='W1 mean')
 plt.plot()
 

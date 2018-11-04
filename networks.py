@@ -101,13 +101,13 @@ class TorchNet(nn.Module):
         dW1 = self.fc1.weight.grad.numpy()
         dW2 = self.fc2.weight.grad.numpy()
         
-        W1_scale = np.linalg.norm(self.fc1.weight.grad)
+        W1_scale = np.linalg.norm(dW1)
         self.weight_stats['gradW1'].append(W1_scale)
         update1 = -lr * dW1 
         update_scale1 = np.linalg.norm(update1.ravel())
         self.weight_stats['rW1'].append(float(update_scale1 / W1_scale))
         
-        W2_scale = np.linalg.norm(self.fc2.weight.grad)
+        W2_scale = np.linalg.norm(dW2)
         self.weight_stats['gradW2'].append(W2_scale)
         update2 = -lr * dW2
         update_scale2 = np.linalg.norm(update2.ravel())
@@ -124,7 +124,8 @@ class Network():
         1 hidden layer, softmax output and cross-entropy loss function.
     '''
     
-    def __init__(self, in_f, out_c, lay_size=100, learning_rate=1e-4):
+    def __init__(self, in_f, out_c, lay_size=100, 
+                 learning_rate=1e-4, print_sizes=False):
         super(Network, self).__init__()
         
         self.inp_dim = in_f
@@ -134,17 +135,26 @@ class Network():
         self.W2 = np.random.rand(lay_size, out_c)
         
         self.lr = learning_rate
+        self.p = print_sizes     
         
-        self.W1_stats = list()
-        self.W2_stats = list()
-        self.W1_scale = list()
-        self.W2_scale = list()
+        self.weight_stats = dict(
+                W1 = dict(vals = list(), mean = list(), var = list()),
+                W2 = dict(vals = list(), mean = list(), var = list()),
+                gradW1 = list(),
+                gradW2 = list(),
+                rW1 = list(),
+                rW2 = list(),
+                )
+        
+        self.L1 = dict(mean = list(), var = list())
         
     def ratioweights(self, W, update):
         param_scale = np.linalg.norm(W.ravel())
         update_scale = np.linalg.norm(update.ravel())
         return update_scale / param_scale
-        
+    
+    def sigmoid(self, x):
+        return 'TODO Sigmoid'
         
     def relu(self, x):
         x[x < 0] = 0
@@ -156,10 +166,40 @@ class Network():
     def crossentropy(self, p, y):
         return -np.sum(y * np.log(p+1e-9)) / p.shape[0]
       
+    def collect_stats(self, dW1, dW2):
+        
+        self.weight_stats['W1']['vals'].append(self.W1)
+        self.weight_stats['W1']['mean'].append(float(self.W1.mean()))
+        self.weight_stats['W1']['var'].append(float(self.W2.var()))
+        
+        self.weight_stats['W2']['vals'].append(self.W2)
+        self.weight_stats['W2']['mean'].append(float(self.W2.mean()))
+        self.weight_stats['W2']['var'].append(float(self.W2.var()))
+                
+        W1_scale = np.linalg.norm(dW1)
+        self.weight_stats['gradW1'].append(W1_scale)
+        update1 = -self.lr * dW1 
+        update_scale1 = np.linalg.norm(update1.ravel())
+        self.weight_stats['rW1'].append(float(update_scale1 / W1_scale))
+        
+        W2_scale = np.linalg.norm(dW2)
+        self.weight_stats['gradW2'].append(W2_scale)
+        update2 = -self.lr * dW2
+        update_scale2 = np.linalg.norm(update2.ravel())
+        self.weight_stats['rW2'].append(float(update_scale2 / W2_scale))    
+    
     def forward(self, x):
+        if self.p: print("\t FC1 input size: ", x.size())        
+        # Layer 1
         a = x @ self.W1
         h = self.relu(a)
+        self.L1['mean'].append(float(h.mean()))
+        self.L1['var'].append(float(h.mean()))
+        
+        # Layer 2
+        if self.p: print('\t FC2 input size: ', x.size())
         z = h @ self.W2
+        if self.p: print("\t Output size: ", x.size())
         p = self.softmax(z)
         return h, p 
       
@@ -171,16 +211,14 @@ class Network():
         return dW1, dW2
 
     def update_weights(self, dW1, dW2):
+        
+        self.collect_stats(dW1, dW2)
+        
         self.W1 = self.W1 + self.lr * dW1
         self.W2 = self.W2 + self.lr * dW2
         
-        print('dW2: ', dW2)
-        
-        self.W1_stats.append((self.W1.mean(), self.W1.var()))
-        self.W2_stats.append((self.W2.mean(), self.W2.var()))
-        self.W1_scale.append(self.ratioweights(self.W1, self.lr * dW1))
-        self.W2_scale.append(self.ratioweights(self.W2, self.lr * dW2))
-       
+ 
+####################################
         
         
 class SGD_Optimizer():
@@ -217,7 +255,7 @@ class SGD_Optimizer():
             self.net.update_weights(dW1, dW2)
                 
         ep_train_loss = np.mean(np.array(self.train_loss))
-        ep_train_accy = np.mean(np.array(self.train_accy))
+        ep_train_accy = np.mean(np.array(self.train_accy)) * 100
         return ep_train_loss, ep_train_accy
     
         
@@ -252,7 +290,12 @@ class SGD_Optimizer():
             grads.append(grad)
             
             # Calculate training loss and accuracy
-            self.train_accy.append((y_pred == y_true).sum() / y_true.size)
+            y_pred_ = np.zeros(len(y_pred))
+            if y_pred[0] == y_pred.max():
+                y_pred_[0] = 1
+            else:
+                y_pred_[1] = 1
+            self.train_accy.append((y_pred_ == y_true).sum() / y_true.size)
     
         # Backprop using the informations we get from the current minibatch
         return np.array(xs), np.array(hs), np.array(grads)

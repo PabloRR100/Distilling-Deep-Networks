@@ -39,7 +39,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
 df_train = to_df(X_train, y_train)
 df_test = to_df(X_test, y_test)
 
-scatterplot([df, df_train, df_test], ['Original data', 'Training set', 'Test set'])
+#scatterplot([df, df_train, df_test], ['Original data', 'Training set', 'Test set'])
 
 
 
@@ -48,10 +48,10 @@ scatterplot([df, df_train, df_test], ['Original data', 'Training set', 'Test set
 
 inp_dim = 2
 lay_size = 100
-learning_rate = 0.001
+learning_rate = 0.1
 n_class = len(np.unique(y_train))
 
-EPOCHS = 100
+EPOCHS = 50
 BATCHSIZE = 64
 
 
@@ -77,15 +77,12 @@ for epoch in range(EPOCHS):
     # Training
     l, a = optimizer.minibatch_SGD(X_train, y_train, BATCHSIZE)
     pure_python['train_loss'].append(l)
-    pure_python['train_accy'].append(a)
-    
-    if epoch % 5 == 0:
-        print(net.W1[:2,:2])
-        
+    pure_python['train_accy'].append(a)        
     
     # Validation
     y_pred = list()
     current_loss = list()
+    correct, total = 0, 0
     for i, (x,c) in enumerate(zip(X_test, y_test)):
         
         # One hot encoded to calculate the loss
@@ -97,13 +94,17 @@ for epoch in range(EPOCHS):
         # Accuracy
         y = np.argmax(prob)
         y_pred.append(y)
+        
+        total += 1
+        if y_pred[i] == y_test[i]: 
+            correct += 1
     
     # Calculate loss and accy
     pure_python['valid_loss'].append(np.mean(current_loss))
-    pure_python['valid_accy'].append((y_pred == y_test).sum() / y_test.size)
+    pure_python['valid_accy'].append(correct / total * 100)
     
-    if epoch % 5 == 0:
-        print('Epoch: {}, Loss: {}, Accy: {}'.format(epoch, l, a))
+    print('Epoch: {}, Loss: {}, Accy: {}'.format(epoch, l, a))
+
 
 
 
@@ -124,39 +125,110 @@ plt.plot()
 
 
 plt.figure()
-plt.figure('Accuracy Evolution')
+plt.title('Accuracy Evolution')
 sns.lineplot(range(EPOCHS), mode['train_accy'], label='Training')
 sns.lineplot(range(EPOCHS), mode['valid_accy'], label='Validation')
 plt.plot()
 
 
+# Predictions 
 
-# Network Analysis
-# ----------------
+from utils import true_vs_pred
+_, y_pred = net.forward(X_test)
+y_pred_all = np.zeros(len(y_pred))
 
-W1_stats = net.W1_stats
-W2_stats = net.W2_stats
-W1_scale = net.W1_scale
-W2_scale = net.W2_scale
+for i,r in enumerate(y_pred):
+    if y_pred[i,0] == r.max():
+        y_pred_all[i] = 0
+    else:
+        y_pred_all[i] = 1
+
+df_test = to_df(X_test, y_test)
+df_pred = to_df(X_test, y_pred_all)
+
+true_vs_pred(df_test, df_pred)
 
 
-# Mean of the weights
-plt.figure()
-sns.lineplot(range(len(W1_stats)), [i[0] for i in W1_stats], label='W1 mean')
-sns.lineplot(range(len(W1_stats)), [i[0] for i in W2_stats], label='W2 mean')  ## W2 is not changing !!
+
+
+
+# PyTorch Network Analysis
+# ------------------------
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+net = net
+
+W1_stats = net.weight_stats['W1']
+W2_stats = net.weight_stats['W2']
+W1_scale = net.weight_stats['rW1']
+W2_scale = net.weight_stats['rW2']
+
+
+## The Var is way bigger than the Mean !!??
+stats1 = pd.DataFrame(W1_stats)
+stats2 = pd.DataFrame(W2_stats)
+plt.figure(figsize=(15,15))
+plt.plot(range(len(stats1['mean'])), stats1['mean'])
+plt.fill_between(range(len(stats1['mean'])), 
+                 stats1['mean'] + stats1['var'], 
+                 stats1['mean'] - stats1['var'], 
+                 alpha=0.2, label='W1 mean')
+plt.plot(range(len(stats2['mean'])), stats2['mean'])
+plt.fill_between(range(len(stats2['mean'])), 
+                 stats2['mean'] + stats2['var'], 
+                 stats2['mean'] - stats2['var'], 
+                 alpha=0.2, label='W2 mean')
 plt.plot()
 
-# Variance of the weight
-plt.figure()
-sns.lineplot(range(len(W1_stats)), [i[1] for i in W1_stats], label='W1 variance')
-sns.lineplot(range(len(W1_stats)), [i[1] for i in W2_stats], label='W2 variance')
+
+
+# Mean and var of the weights separately
+fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(15,15))
+xaxis = range(len(W1_stats['mean']))
+sns.lineplot(xaxis, W1_stats['mean'], label='W1 mean', ax=axs[0,0])
+sns.lineplot(xaxis, W1_stats['var'], label='W1 var', ax=axs[0,1])
+sns.lineplot(xaxis, W2_stats['mean'], label='W2 mean', ax=axs[1,0])
+sns.lineplot(xaxis, W2_stats['var'], label='W2 var', ax=axs[1,1])
 plt.plot()
+
+
+# Evolution and Histogram of the gradients
+from utils import normalize_gradients
+norm_dW1, norm_dW2 = normalize_gradients(net.weight_stats['gradW1'], net.weight_stats['gradW2'])
+plt.figure(figsize=(15,15))
+ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=1)
+ax2 = plt.subplot2grid((3, 3), (0, 1), colspan=1)
+ax3 = plt.subplot2grid((3, 3), (1, 0), colspan=2)
+ax4 = plt.subplot2grid((3, 3), (2, 0), colspan=2)
+sns.lineplot(xaxis, net.weight_stats['gradW1'], ax=ax1, color='blue').set_title('grad W1')
+sns.lineplot(xaxis, net.weight_stats['gradW2'], ax=ax2, color='red').set_title('grad W2')
+sns.lineplot(xaxis, net.weight_stats['gradW1'], ax=ax3, color='blue', label='grad W1')
+sns.lineplot(xaxis, net.weight_stats['gradW2'], ax=ax3, color='red', label='grad W2')
+sns.kdeplot(norm_dW1, shade=True, ax=ax4)
+sns.kdeplot(norm_dW2, shade=True, ax=ax4)
+plt.plot()
+
 
 # Ratio weight / updata (should be around 1e-3)
-plt.figure()
-sns.lineplot(range(len(W1_stats)), W1_scale, label='W1 ratio')
-sns.lineplot(range(len(W1_stats)), W2_scale, label='W2 ratio')
+fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15,15))
+sns.lineplot(xaxis, W1_scale, label='W1 ratio', ax=axs[0])
+sns.lineplot(xaxis, W2_scale, label='W2 ratio', ax=axs[1])
 plt.plot()
+
+
+# Saturation of the layers
+downsampling = 400
+axis = range(0, len(net.L1['mean']), downsampling)
+
+plt.figure(figsize=(15,15))
+plt.title('Activation value (mean and variance)')
+plt.plot(range(len(net.L1['mean'])), net.L1['mean'], net.L1['var'], color='red')
+plt.errorbar(axis, net.L1['mean'][::downsampling], net.L1['var'][::downsampling], linestyle='None', color='red')
+plt.show()
+
 
 
 
