@@ -57,16 +57,26 @@ def create_torch_dataset(inputs, labels, BS, shuffle):
 
 
 
-def normalize_gradients(a,b):
+def normalize_gradients(a,b, type:str):
+    
+    options = ['standard', 'normal']
+    err = 'Choose between valid scaling ["standard" / "normal"]'
+    assert type in options, err
     
     from itertools import chain
     from sklearn.preprocessing import MinMaxScaler
+    from sklearn.preprocessing import StandardScaler
 
-    def normalizeT(data):
-#        return ((data - data.mean()) / data.max() - data.min())        
+    def normalize(data):
         scaler = MinMaxScaler(feature_range=(-1,1))
         return scaler.fit_transform(data)
+    
+    def standarize(data):
+        scaler = StandardScaler()
+        return scaler.fit_transform(data)
+    
+    scale = standarize if type == 'standard' else normalize
 
-    a = list(chain(*list(normalizeT(np.array(a).reshape(-1,1)))))
-    b = list(chain(*list(normalizeT(np.array(b).reshape(-1,1)))))
+    a = list(chain(*list(scale(np.array(a).reshape(-1,1)))))
+    b = list(chain(*list(scale(np.array(b).reshape(-1,1)))))
     return a, b

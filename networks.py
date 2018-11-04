@@ -1,4 +1,5 @@
 
+import sys
 import numpy as np
 from sklearn.utils import shuffle
 from torch import nn
@@ -56,7 +57,8 @@ class TorchNet(nn.Module):
         self.fc1 = nn.Linear(in_f, lay_size, bias=False)
         self.fc2 = nn.Linear(lay_size, out_c, bias=False)
         self.relu = nn.ReLU(inplace=True)
-        self.sigm = nn.Sigmoid()
+#        self.sigm = nn.Sigmoid()
+#        self.tanh = nn.Tanh()
         self.p = print_sizes     
         
         self.weight_stats = dict(
@@ -78,6 +80,7 @@ class TorchNet(nn.Module):
         if self.p: print("\t FC1 input size: ", x.size())        
         x = self.relu(self.fc1(x))
 #        x = self.sigm(self.fc1(x))
+#        x = self.tanh(self.fc1(x))
         self.L1['mean'].append(float(x.mean()))
         self.L1['var'].append(float(x.mean()))
         
@@ -153,11 +156,27 @@ class Network():
         update_scale = np.linalg.norm(update.ravel())
         return update_scale / param_scale
     
-    def sigmoid(self, x):
-        return 'TODO Sigmoid'
+    def checknans(self, x):
+        return np.isnan(x).any()
+    
+    def sigmoid(self, z):   
+        return 1 / (1+np.exp(-z))
+
+    def dsigmoid(self, z):
+        return np.exp(-z)/((1+np.exp(-z))**2)
+
+    def tanh(self, z):
+        return np.tanh(z)
+    
+    def dtanh(self, z):
+        return (1 - np.tanh(z)^2)
         
     def relu(self, x):
         x[x < 0] = 0
+        return x
+    
+    def drelu(self, x, h):
+        x[h <= 0] = 0
         return x
         
     def softmax(self, x):
@@ -192,7 +211,9 @@ class Network():
         if self.p: print("\t FC1 input size: ", x.size())        
         # Layer 1
         a = x @ self.W1
-        h = self.relu(a)
+        h = self.sigmoid(a)
+#        h = self.tanh(a)
+#        h = self.relu(a)
         self.L1['mean'].append(float(h.mean()))
         self.L1['var'].append(float(h.mean()))
         
@@ -206,8 +227,19 @@ class Network():
     def backward(self, xs, hs, grads):
         dW2 = hs.T @ grads          # dL / dW2
         dh = grads @ self.W2.T      # dL / dh
-        dh[hs <= 0] = 0             # dh / dh (through relu)
+        
+        dh = self.dsigmoid(dh)      # dh / dh (through sigmoid)
+#        dh = self.dtanh(dh)         # dh / dh (through sigmoid)
+#        dh = self.drelu(dh, hs)     # dh / dh (through relu)
+#        
         dW1 = xs.T @ dh             # dL / dW1
+        
+        explode_gradient = True if self.checknans(dW1) or self.checknans(dW2) else False
+        #assert not explode_gradient, 'Vanishing/Exploding Gradient !'
+        if explode_gradient:
+            print('Vanishing/Exploding Gradient !')
+            print('Last gradient: \n dW1: {} \n dW2: {}'.format(dW1[:2], dW2[:2]))
+            sys.exit(0)
         return dW1, dW2
 
     def update_weights(self, dW1, dW2):

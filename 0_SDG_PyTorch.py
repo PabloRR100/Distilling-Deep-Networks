@@ -7,11 +7,18 @@ Created on Thu Nov  1 09:47:02 2018
 
 ## TODO list
 '''
+
+- [] Extend possibility to automatically adjust the network to input config
+    - Allowing to track network capacities
+
  - [~] Timeit one epoch pass scratch/torch sgd/momentum
  - [X] Compute hidden values sizes
  - [] Track the saturation of every layer
  - [] Track plots of inference on test set at different times of the training:
      - By saving a copy of the model each x epochs or by plotting every x epochs
+     
+ - [] Track the evolution of the INPUT to the activation functions
+     - This is used to track how BatchNorm reduces Internal Covariance Shift
 '''
 
 
@@ -199,7 +206,9 @@ plt.plot()
 
 # Evolution of the gradients
 from utils import normalize_gradients
-norm_dW1, norm_dW2 = normalize_gradients(net.weight_stats['gradW1'], net.weight_stats['gradW2'])
+xaxis = range(len(W1_stats['mean']))
+norm_dW1, norm_dW2 = normalize_gradients(
+        net.weight_stats['gradW1'], net.weight_stats['gradW2'], type='standard')
 plt.figure(figsize=(15,15))
 ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=1)
 ax2 = plt.subplot2grid((3, 3), (0, 1), colspan=1)
@@ -234,7 +243,7 @@ axis = range(0, len(net.L1['mean']), downsampling)
 
 plt.figure(figsize=(15,15))
 plt.title('Activation value (mean and variance)')
-plt.plot(range(len(net.L1['mean'])), net.L1['mean'], net.L1['var'], color='red')
+plt.plot(range(len(net.L1['mean'])), net.L1['mean'], color='red')
 plt.errorbar(axis, net.L1['mean'][::downsampling], net.L1['var'][::downsampling], linestyle='None', color='red')
 plt.show()
 
