@@ -14,11 +14,18 @@ Analyze how different combinations of architectures of networks, activation func
 
 The examples shown will be for a simple 1 hidden layer CNN (Note 1 hidden layer has 2 layers of parameters W1 and W2)  
 
-![](test_inference)
+![test][test_inference]
 
 Example of analyzing the weights:
-![](weight_stats)
+![weights][weight_stats]
 
+Example of analyzing the gradients:
+![grads][grads]
 
-[test_inference]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/pred_results.png?raw=true
-[weight_stats]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/1_weight_stats.png?raw=true
+Example of analyzing the activations:
+![activations][activations]
+
+[test_inference]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/pred_results.png?raw=true  
+[weight_stats]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/1_weight_stats.png?raw=true  
+[grads]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/2_grads_stats.png?raw=true  
+[activations]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/3_activation_stats.png?raw=true
