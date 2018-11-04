@@ -56,28 +56,13 @@ def create_torch_dataset(inputs, labels, BS, shuffle):
     return loader
 
 
-def ratioweights(net, learning_rate):
-    '''
-    A rough heuristic is that this ratio should be somewhere around 1e-3. 
-    If it is lower than this then the learning rate might be too low. 
-    If it is higher then the learning rate is likely too high.
-    '''
-    W1_mean = float(net.fc1.weight.data.mean())
-    W1_var  = float(net.fc1.weight.data.var())
-    W2_mean = float(net.fc2.weight.data.mean())
-    W2_var  = float(net.fc2.weight.data.var())
+
+def normalize_gradients(a,b):
     
-    dW1 = net.fc1.weight.grad.data.numpy()
-    dW2 = net.fc2.weight.grad.data.numpy()
+    from itertools import chain
+    def normalizeT(data):
+        return ((data - data.mean()) / data.max() - data.min())
     
-    W1_scale = np.linalg.norm(net.fc1.weight.grad)
-    update1 = -learning_rate * dW1 
-    update_scale1 = np.linalg.norm(update1.ravel())
-    ratio1 = float(update_scale1 / W1_scale)
-    
-    W2_scale = np.linalg.norm(net.fc2.weight.grad)
-    update2 = -learning_rate * dW2
-    update_scale2 = np.linalg.norm(update2.ravel())
-    ratio2 = float(update_scale2 / W2_scale)
-    return W1_mean, W1_var, W2_mean, W2_var, ratio1, ratio2
-    
+    a = list(chain(*list(normalizeT(np.array(a).reshape(-1,1)))))
+    b = list(chain(*list(normalizeT(np.array(b).reshape(-1,1)))))
+    return a, b

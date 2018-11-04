@@ -10,6 +10,8 @@ Created on Thu Nov  1 09:47:02 2018
  - [] Timeit one epoch pass scratch/torch sgd/momentum
  - [X] Compute hidden values sizes
  - [] Track the saturation of every layer
+ - [] Check if the reason of no learning could have to do with the zero_grad()
+         and if the heavy change of the var of the weights could be a good indicator
 '''
 
 

@@ -59,7 +59,6 @@ pytorch = dict(train_loss = list(), train_accy = list(),
                valid_loss = list(), valid_accy = list())
 
 
-
 # Training PyTorch Model
 import torch
 import torch.nn as nn
@@ -164,31 +163,78 @@ true_vs_pred(df_test, df_pred)
 # PyTorch Network Analysis
 # ------------------------
 
-net = torchnet
-
-W1_stats = net.W1['W1_stats']
-W2_stats = net.['W2_stats']
-W1_scale = torch_stats['W1_scale']
-W2_scale = torch_stats['W2_scale']
-
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Mean of the weights
-plt.figure()
-sns.lineplot(range(len(W1_stats)), [i[0] for i in W1_stats], label='W1 mean')
-sns.lineplot(range(len(W1_stats)), [i[0] for i in W2_stats], label='W2 mean')  ## W2 is not changing !!
+net = torchnet
+
+W1_stats = net.weight_stats['W1']
+W2_stats = net.weight_stats['W2']
+W1_scale = net.weight_stats['rW1']
+W2_scale = net.weight_stats['rW2']
+
+
+## The Var is way bigger than the Mean !!??
+stast = pd.DataFrame(W1_stats)
+plt.figure(figsize=(15,15))
+plt.plot(range(len(stast['mean'])), stast['mean'])
+plt.fill_between(range(len(stast['mean'])), 
+                 stast['mean'] + stast['mean'] + stast['var'], 
+                 stast['mean'] + stast['mean'] - stast['var'], 
+                 alpha=0.2, label='W1 mean')
 plt.plot()
 
-# Variance of the weight
-plt.figure()
-sns.lineplot(range(len(W1_stats)), [i[1] for i in W1_stats], label='W1 variance')
-sns.lineplot(range(len(W1_stats)), [i[1] for i in W2_stats], label='W2 variance')
+
+
+# Mean and var of the weights separately
+fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(15,15))
+xaxis = range(len(W1_stats['mean']))
+sns.lineplot(xaxis, W1_stats['mean'], label='W1 mean', ax=axs[0,0])
+sns.lineplot(xaxis, W1_stats['var'], label='W1 var', ax=axs[0,1])
+sns.lineplot(xaxis, W2_stats['mean'], label='W2 mean', ax=axs[1,0])
+sns.lineplot(xaxis, W2_stats['var'], label='W2 var', ax=axs[1,1])
 plt.plot()
+
+
+# Evolution of the gradients
+from utils import normalize_gradients
+norm_dW1, norm_dW2 = normalize_gradients(net.weight_stats['gradW1'], net.weight_stats['gradW2'])
+plt.figure(figsize=(15,15))
+ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=1)
+ax2 = plt.subplot2grid((3, 3), (0, 1), colspan=1)
+ax3 = plt.subplot2grid((3, 3), (1, 0), colspan=2)
+ax4 = plt.subplot2grid((3, 3), (2, 0), colspan=2)
+sns.lineplot(xaxis, net.weight_stats['gradW1'], ax=ax1, color='blue').set_title('grad W1')
+sns.lineplot(xaxis, net.weight_stats['gradW2'], ax=ax2, color='red').set_title('grad W2')
+sns.lineplot(xaxis, net.weight_stats['gradW1'], ax=ax3, color='blue', label='grad W1')
+sns.lineplot(xaxis, net.weight_stats['gradW2'], ax=ax3, color='red', label='grad W2')
+sns.kdeplot(norm_dW1, shade=True, ax=ax4)
+sns.kdeplot(norm_dW2, shade=True, ax=ax4)
+plt.plot()
+
+
+# Histogram of weights gradients
+plt.figure(figsize=(15,15))
+sns.kdeplot(norm_dW1, shade=True, ax=ax4)
+sns.kdeplot(norm_dW2, shade=True, ax=ax4)
+plt.plot()
+
 
 # Ratio weight / updata (should be around 1e-3)
-plt.figure()
-sns.lineplot(range(len(W1_stats)), W1_scale, label='W1 ratio')
-sns.lineplot(range(len(W1_stats)), W2_scale, label='W2 ratio')
+fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15,15))
+sns.lineplot(xaxis, W1_scale, label='W1 ratio', ax=axs[0])
+sns.lineplot(xaxis, W2_scale, label='W2 ratio', ax=axs[1])
 plt.plot()
+
+
+# Saturation of the layers
+downsampling = 40
+axis = range(0, len(net.L1['mean']), downsampling)
+
+plt.figure(figsize=(15,15))
+plt.title('Activation value (mean and variance)')
+plt.plot(range(len(net.L1['mean'])), net.L1['mean'], net.L1['var'], color='red')
+plt.errorbar(axis, net.L1['mean'][::downsampling], net.L1['var'][::downsampling], linestyle='None', color='red')
+plt.show()
 

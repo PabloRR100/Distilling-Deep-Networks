@@ -1,5 +1,4 @@
 
-
 import numpy as np
 from sklearn.utils import shuffle
 from torch import nn
@@ -54,16 +53,19 @@ class TorchNet(nn.Module):
     def __init__(self, in_f, out_c, lay_size=100, print_sizes=False):
         super(TorchNet, self).__init__()
         
-        self.fc1 = nn.Linear(in_f, lay_size)
-        self.fc2 = nn.Linear(lay_size, out_c)
+        self.fc1 = nn.Linear(in_f, lay_size, bias=False)
+        self.fc2 = nn.Linear(lay_size, out_c, bias=False)
         self.relu = nn.ReLU(inplace=True)
+        self.sigm = nn.Sigmoid()
         self.p = print_sizes     
         
         self.weight_stats = dict(
-                self.W1 = dict(mean = list(), var = list()),
-                self.W2 = dict(mean = list(), var = list()),
-                self.rW1 = list(),
-                self.rW2 = list(),
+                W1 = dict(vals = list(), mean = list(), var = list()),
+                W2 = dict(vals = list(), mean = list(), var = list()),
+                gradW1 = list(),
+                gradW2 = list(),
+                rW1 = list(),
+                rW2 = list(),
                 )
         
         self.L1 = dict(mean = list(), var = list())
@@ -75,6 +77,7 @@ class TorchNet(nn.Module):
         # Layer 1
         if self.p: print("\t FC1 input size: ", x.size())        
         x = self.relu(self.fc1(x))
+#        x = self.sigm(self.fc1(x))
         self.L1['mean'].append(float(x.mean()))
         self.L1['var'].append(float(x.mean()))
         
@@ -87,24 +90,33 @@ class TorchNet(nn.Module):
     
     def collect_stats(self, lr):
         
-        self.W1['mean'].append(float(self.fc1.weight.data.mean()))
-        self.W1['var'].append(float(self.fc1.weight.data.var()))
-        self.W2['mean'].append(float(self.fc2.weight.data.mean()))
-        self.W2['var'].append(float(self.fc2.weight.data.var()))
+        self.weight_stats['W1']['vals'].append(self.fc1.weight.data.numpy())
+        self.weight_stats['W1']['mean'].append(float(self.fc1.weight.data.mean()))
+        self.weight_stats['W1']['var'].append(float(self.fc1.weight.data.var()))
+        
+        self.weight_stats['W2']['vals'].append(self.fc1.weight.data.numpy())
+        self.weight_stats['W2']['mean'].append(float(self.fc2.weight.data.mean()))
+        self.weight_stats['W2']['var'].append(float(self.fc2.weight.data.var()))
         
         dW1 = self.fc1.weight.grad.numpy()
         dW2 = self.fc2.weight.grad.numpy()
         
         W1_scale = np.linalg.norm(self.fc1.weight.grad)
+        self.weight_stats['gradW1'].append(W1_scale)
         update1 = -lr * dW1 
         update_scale1 = np.linalg.norm(update1.ravel())
-        self.rW1.append(float(update_scale1 / W1_scale))
+        self.weight_stats['rW1'].append(float(update_scale1 / W1_scale))
         
         W2_scale = np.linalg.norm(self.fc2.weight.grad)
+        self.weight_stats['gradW2'].append(W2_scale)
         update2 = -lr * dW2
         update_scale2 = np.linalg.norm(update2.ravel())
-        self.rW2.append(float(update_scale2 / W2_scale))
+        self.weight_stats['rW2'].append(float(update_scale2 / W2_scale))
  
+
+##############################################################################
+##############################################################################
+        
 
 class Network():
     '''
