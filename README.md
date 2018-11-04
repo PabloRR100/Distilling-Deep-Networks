@@ -20,5 +20,5 @@ Example of analyzing the weights:
 ![](weight_stats)
 
 
-[test_inference][https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/pred_results.png?raw=true]
-[weight_stats][https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/1_weight_stats.png?raw=true]
+[test_inference]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/pred_results.png?raw=true
+[weight_stats]: https://github.com/PabloRR100/Distilling-Deep-Networks/blob/master/figures/1_weight_stats.png?raw=true
