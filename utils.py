@@ -9,6 +9,7 @@ def to_df(X, y):
     return pd.concat((pd.DataFrame(X, columns=['X1', 'X2']), 
                 pd.DataFrame(y, columns=['y'])), axis=1)
 
+
 def scatterplot(dfs:list, titles:list = [None]):
     
     assert len(dfs) == len(titles), 'List must be same lenght'
@@ -56,7 +57,6 @@ def create_torch_dataset(inputs, labels, BS, shuffle):
     return loader
 
 
-
 def normalize_gradients(a,b, type:str):
     
     options = ['standard', 'normal']
@@ -80,3 +80,9 @@ def normalize_gradients(a,b, type:str):
     a = list(chain(*list(scale(np.array(a).reshape(-1,1)))))
     b = list(chain(*list(scale(np.array(b).reshape(-1,1)))))
     return a, b
+
+
+# Count parameters of a model 
+def count_parameters(model):
+    ''' Count the parameters of a model '''
+    return sum(p.numel() for p in model.parameters())
