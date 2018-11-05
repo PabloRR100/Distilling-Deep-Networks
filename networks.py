@@ -130,7 +130,10 @@ class TorchNet(nn.Module):
         self.weight_stats['Winp']['mean'].append(float(self.fcInp.weight.data.mean()))
         self.weight_stats['Winp']['var'].append(float(self.fcInp.weight.data.var()))
         
-        [self.weight_stats['Whid'][i].append(self.fcHid[i].weight.data.numpy()) for i in range(self.n_lay)]
+        for i in range(self.n_lay):
+            self.weight_stats['Whid'][i]['vals'].append(self.fcHid[i].weight.data.numpy())
+            self.weight_stats['Whid'][i]['mean'].append(float(self.fcHid[i].weight.data.mean()))
+            self.weight_stats['Whid'][i]['var'].append(float(self.fcHid[i].weight.data.var()))
         
         self.weight_stats['Wout']['vals'].append(self.fcOut.weight.data.numpy())
         self.weight_stats['Wout']['mean'].append(float(self.fcOut.weight.data.mean()))
@@ -145,23 +148,30 @@ class TorchNet(nn.Module):
         # Update values
         Winp_scale = np.linalg.norm(dWinp)
         self.weight_stats['gradWinp'].append(Winp_scale)
-        update1 = -lr * dWinp 
-        update_scale1 = np.linalg.norm(update1.ravel())
-        self.weight_stats['rW1'].append(float(update_scale1 / Winp_scale))
+        updateInp = -lr * dWinp 
+        update_scaleInp = np.linalg.norm(updateInp.ravel())
+        self.weight_stats['rWinp'].append(float(update_scaleInp / Winp_scale))
         
-        Whid_scale = [np.linalg.norm(dWhid[i] for i in range(self.n_lay))
-        self.weight_stats[]
+        ## TODO - Look if numpy could allow to rewrite most of the list comprehension lines
+        for i in range(self.n_lay):        
+            Whid_scale = np.linalg.norm(dWhid[i])
+            self.weight_stats['gradWhid'][i].append(Whid_scale)
+            updateHid = -lr * dWhid[i]
+            update_scaleHid = np.linalg.norm(updateHid.ravel())
+            self.weight_stats['rWhid'][i].append(float(update_scaleHid / Whid_scale))
         
         Wout_scale = np.linalg.norm(dWout)
         self.weight_stats['gradWout'].append(Wout_scale)
-        update2 = -lr * dWout
-        update_scale2 = np.linalg.norm(update2.ravel())
-        self.weight_stats['rW2'].append(float(update_scale2 / Wout_scale))
+        updateOut = -lr * dWout
+        update_scaleOut = np.linalg.norm(updateOut.ravel())
+        self.weight_stats['rWout'].append(float(update_scaleOut / Wout_scale))
  
+    
 
 ##############################################################################
 ##############################################################################
         
+
 
 class Network():
     '''
@@ -239,15 +249,15 @@ class Network():
                 
         Winp_scale = np.linalg.norm(dW1)
         self.weight_stats['gradW1'].append(Winp_scale)
-        update1 = -self.lr * dW1 
-        update_scale1 = np.linalg.norm(update1.ravel())
-        self.weight_stats['rW1'].append(float(update_scale1 / Winp_scale))
+        updateInp = -self.lr * dW1 
+        update_scaleInp = np.linalg.norm(updateInp.ravel())
+        self.weight_stats['rW1'].append(float(update_scaleInp / Winp_scale))
         
         Wout_scale = np.linalg.norm(dW2)
         self.weight_stats['gradW2'].append(Wout_scale)
-        update2 = -self.lr * dW2
-        update_scale2 = np.linalg.norm(update2.ravel())
-        self.weight_stats['rW2'].append(float(update_scale2 / Wout_scale))    
+        updateOut = -self.lr * dW2
+        update_scaleOut = np.linalg.norm(updateOut.ravel())
+        self.weight_stats['rW2'].append(float(update_scaleOut / Wout_scale))    
     
     def forward(self, x):
         if self.p: print("\t FC1 input size: ", x.size())        

@@ -3,12 +3,14 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from collections import OrderedDict
 
+# PLOTS UTILS
+# -----------
 
 def to_df(X, y):
     return pd.concat((pd.DataFrame(X, columns=['X1', 'X2']), 
                 pd.DataFrame(y, columns=['y'])), axis=1)
-
 
 def scatterplot(dfs:list, titles:list = [None]):
     
@@ -37,6 +39,38 @@ def true_vs_pred(df_test, df_pred):
     plt.title('Prediction results')
     plt.plot()
     
+    
+def distribution_of_graphs(net):
+    
+    dictgrads = extract_dictgrads(net)
+    df = pd.melt(pd.DataFrame(dictgrads).iloc[::-1])
+    df.columns = ['grad', 'x']
+    
+    pal = sns.cubehelix_palette(len(df['grad'].unique()), rot=-.25, light=.7)
+    g = sns.FacetGrid(df, row="grad", hue="grad", aspect=15, height=5, palette=pal)
+    
+    # Draw the densities in a few steps
+    g.map(sns.kdeplot, "x", clip_on=False, shade=True, alpha=0.6, lw=1.5, bw=.2)
+    g.map(sns.kdeplot, "x", clip_on=False, color="w", lw=2, bw=.2) ## White contour
+    g.map(plt.axhline, y=0, lw=2, clip_on=False) ## Will serve as the x axis
+    
+    # Define and use a simple function to label the plot in axes coordinates
+    def label(x, color, label):
+        ax = plt.gca()
+        ax.text(0, .2, label, fontweight="bold", color=color,
+                ha="left", va="bottom", transform=ax.transAxes)
+#        ax.set_xlim([-1.5, 1.5])
+    g.map(label, "x")
+    
+    # Set the subplots to overlap
+    g.fig.subplots_adjust(hspace=-.75)
+    
+    # Remove axes details that don't play well with overlap
+    g.set_titles("")
+    g.set(yticks=[])
+    g.despine(bottom=True, left=True)
+    return g
+ 
 
 def onehotencode(vec, n_class):
     #tr_labels = onehotencode(y_train, n_class)
@@ -57,7 +91,24 @@ def create_torch_dataset(inputs, labels, BS, shuffle):
     return loader
 
 
-def normalize_gradients(a,b, type:str):
+def extract_dictgrads(net):
+    
+    grads = list()
+    grads.append(net.weight_stats['gradWinp'])
+    [grads.append(net.weight_stats['gradWhid'][l]) for l in range(net.n_lay)]
+    grads.append(net.weight_stats['gradWout'])
+    normgrads = normalize_gradients(grads, type='standard')
+    
+    dictgrads = OrderedDict()
+    dictgrads['W_inp'] = normgrads[0]
+    for i in range(1,len(normgrads)):
+        dictgrads['W hid {}'.format(i)] = normgrads[i]
+    dictgrads['W out'] = normgrads[-1]
+    return dictgrads
+    
+
+
+def normalize_gradients(vs:list, type:str):
     
     options = ['standard', 'normal']
     err = 'Choose between valid scaling ["standard" / "normal"]'
@@ -76,10 +127,11 @@ def normalize_gradients(a,b, type:str):
         return scaler.fit_transform(data)
     
     scale = standarize if type == 'standard' else normalize
-
-    a = list(chain(*list(scale(np.array(a).reshape(-1,1)))))
-    b = list(chain(*list(scale(np.array(b).reshape(-1,1)))))
-    return a, b
+    
+    ns = list()
+    for v in vs:
+        ns.append(list(chain(*list(scale(np.array(v).reshape(-1,1))))))
+    return ns
 
 
 # Count parameters of a model 
