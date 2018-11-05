@@ -45,76 +45,118 @@ A rough heuristic is that this ratio should be somewhere around 1e-3.
 If it is lower than this then the learning rate might be too low. 
 If it is higher then the learning rate is likely too high.
 
+
+Assumptions
+===========
+
+- All the layers are the same width
+- All the layes share the same activation function
+
 '''
 
 
 class TorchNet(nn.Module):
     ''' Same network using PyTorch '''
     
-    def __init__(self, in_f, out_c, lay_size=100, print_sizes=False):
+    def __init__(self, inp:int, out:int, hid:int,  n_layers:int, 
+                 actf: str = 'relu', print_sizes=False):
         super(TorchNet, self).__init__()
         
-        self.fc1 = nn.Linear(in_f, lay_size, bias=False)
-        self.fc2 = nn.Linear(lay_size, out_c, bias=False)
-        self.relu = nn.ReLU(inplace=True)
-#        self.sigm = nn.Sigmoid()
-#        self.tanh = nn.Tanh()
-        self.p = print_sizes     
+        opt = ['relu', 'sigm', 'tanh']
+        err = 'Select a correct activation function from: {}'.format(opt)
+        assert actf in opt, err
+        
+        self.p = print_sizes  
+        self.n_lay = n_layers
+        self.fcInp = nn.Linear(inp, hid, bias=False)
+        
+        self.fcHid = nn.ModuleList([nn.Linear(hid, hid) for _ in range(self.n_lay)])        
+        self.fcOut = nn.Linear(hid, out, bias=False)
+        
+        if actf == 'relu': self.actf = nn.ReLU(inplace=True)
+        if actf == 'sigm': self.actf = nn.Sigmoid()
+        if actf == 'tanh': self.actf = nn.Tanh()
         
         self.weight_stats = dict(
-                W1 = dict(vals = list(), mean = list(), var = list()),
-                W2 = dict(vals = list(), mean = list(), var = list()),
-                gradW1 = list(),
-                gradW2 = list(),
-                rW1 = list(),
-                rW2 = list(),
+                # Weight stats
+                Winp = dict(vals = list(), mean = list(), var = list()),
+                Whid = [dict(vals = list(), mean = list(), var = list()) for _ in range(self.n_lay)],
+                Wout = dict(vals = list(), mean = list(), var = list()),
+                # Grad stats
+                gradWinp = list(),
+                gradWhid = [list() for _ in range(self.n_lay)],
+                gradWout = list(),
+                # Update stats
+                rWinp = list(),
+                rWhid = [list() for _ in range(self.n_lay)],
+                rWout = list(),
                 )
         
-        self.L1 = dict(mean = list(), var = list())
+        self.lInp = dict(mean = list(), var = list())
+        self.lHid = [dict(mean = list(), var = list()) for _ in range(self.n_lay)]        
         
         
 #    @profile
     def forward(self, x):
          
-        # Layer 1
+        # Input Layer 
         if self.p: print("\t FC1 input size: ", x.size())        
-        x = self.relu(self.fc1(x))
-#        x = self.sigm(self.fc1(x))
-#        x = self.tanh(self.fc1(x))
-        self.L1['mean'].append(float(x.mean()))
-        self.L1['var'].append(float(x.mean()))
         
-        # Layer 2
+        x = self.actf(self.fcInp(x))
+        self.lInp['mean'].append(float(x.mean()))
+        self.lInp['var'].append(float(x.mean()))
+        
+        # Hidden Layers
+        for l in range(self.n_lay):
+            
+            if self.p: print("\t FC Hidden {} input size: {}".format(l, x.size()))
+            x = self.actf(self.fcHid[l](x))
+            self.lHid[l]['mean'].append(float(x.mean()))
+            self.lHid[l]['mean'].append(float(x.var()))
+        
+        # Output Layer 
         if self.p: print('\t FC2 input size: ', x.size())
-        x = self.fc2(x)
+        x = self.fcOut(x)
         
         if self.p: print("\t Output size: ", x.size())
         return x
     
+    
     def collect_stats(self, lr):
         
-        self.weight_stats['W1']['vals'].append(self.fc1.weight.data.numpy())
-        self.weight_stats['W1']['mean'].append(float(self.fc1.weight.data.mean()))
-        self.weight_stats['W1']['var'].append(float(self.fc1.weight.data.var()))
+        ## TODO: rethink weather is better to stor the vals or mean and var for plotting
+        # Weight Values Means and Variances 
+        self.weight_stats['Winp']['vals'].append(self.fcInp.weight.data.numpy())
+        self.weight_stats['Winp']['mean'].append(float(self.fcInp.weight.data.mean()))
+        self.weight_stats['Winp']['var'].append(float(self.fcInp.weight.data.var()))
         
-        self.weight_stats['W2']['vals'].append(self.fc1.weight.data.numpy())
-        self.weight_stats['W2']['mean'].append(float(self.fc2.weight.data.mean()))
-        self.weight_stats['W2']['var'].append(float(self.fc2.weight.data.var()))
+        [self.weight_stats['Whid'][i].append(self.fcHid[i].weight.data.numpy()) for i in range(self.n_lay)]
         
-        dW1 = self.fc1.weight.grad.numpy()
-        dW2 = self.fc2.weight.grad.numpy()
+        self.weight_stats['Wout']['vals'].append(self.fcOut.weight.data.numpy())
+        self.weight_stats['Wout']['mean'].append(float(self.fcOut.weight.data.mean()))
+        self.weight_stats['Wout']['var'].append(float(self.fcOut.weight.data.var()))
         
-        W1_scale = np.linalg.norm(dW1)
-        self.weight_stats['gradW1'].append(W1_scale)
-        update1 = -lr * dW1 
+        ## TODO - Think of networks utils to encapsulate these methods
+        # Gradients
+        dWinp = self.fcInp.weight.grad.numpy()
+        dWhid = [self.fcHid[i].weight.grad.numpy() for i in range(self.n_lay)]
+        dWout = self.fcOut.weight.grad.numpy()
+        
+        # Update values
+        Winp_scale = np.linalg.norm(dWinp)
+        self.weight_stats['gradWinp'].append(Winp_scale)
+        update1 = -lr * dWinp 
         update_scale1 = np.linalg.norm(update1.ravel())
-        self.weight_stats['rW1'].append(float(update_scale1 / W1_scale))
+        self.weight_stats['rW1'].append(float(update_scale1 / Winp_scale))
         
-        W2_scale = np.linalg.norm(dW2)
-        self.weight_stats['gradW2'].append(W2_scale)
-        update2 = -lr * dW2
+        Whid_scale = [np.linalg.norm(dWhid[i] for i in range(self.n_lay))
+        self.weight_stats[]
+        
+        Wout_scale = np.linalg.norm(dWout)
+        self.weight_stats['gradWout'].append(Wout_scale)
+        update2 = -lr * dWout
         update_scale2 = np.linalg.norm(update2.ravel())
-        self.weight_stats['rW2'].append(float(update_scale2 / W2_scale))
+        self.weight_stats['rW2'].append(float(update_scale2 / Wout_scale))
  
 
 ##############################################################################
@@ -195,17 +237,17 @@ class Network():
         self.weight_stats['W2']['mean'].append(float(self.W2.mean()))
         self.weight_stats['W2']['var'].append(float(self.W2.var()))
                 
-        W1_scale = np.linalg.norm(dW1)
-        self.weight_stats['gradW1'].append(W1_scale)
+        Winp_scale = np.linalg.norm(dW1)
+        self.weight_stats['gradW1'].append(Winp_scale)
         update1 = -self.lr * dW1 
         update_scale1 = np.linalg.norm(update1.ravel())
-        self.weight_stats['rW1'].append(float(update_scale1 / W1_scale))
+        self.weight_stats['rW1'].append(float(update_scale1 / Winp_scale))
         
-        W2_scale = np.linalg.norm(dW2)
-        self.weight_stats['gradW2'].append(W2_scale)
+        Wout_scale = np.linalg.norm(dW2)
+        self.weight_stats['gradW2'].append(Wout_scale)
         update2 = -self.lr * dW2
         update_scale2 = np.linalg.norm(update2.ravel())
-        self.weight_stats['rW2'].append(float(update_scale2 / W2_scale))    
+        self.weight_stats['rW2'].append(float(update_scale2 / Wout_scale))    
     
     def forward(self, x):
         if self.p: print("\t FC1 input size: ", x.size())        

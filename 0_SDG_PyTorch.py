@@ -52,6 +52,7 @@ df_test = to_df(X_test, y_test)
 # --------------
 
 inp_dim = 2
+n_layers = 2
 lay_size = 100
 learning_rate = 0.1
 n_class = len(np.unique(y_train))
@@ -79,7 +80,7 @@ ts_loader = create_torch_dataset(X_test, y_test, BS=BATCHSIZE, shuffle=False)
 
     
 from networks import TorchNet
-torchnet = TorchNet(inp_dim, n_class, lay_size)
+torchnet = TorchNet(inp_dim, n_class, lay_size, n_layers)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum=0, weight_decay=0)
@@ -237,11 +238,11 @@ plt.plot()
 
 # Saturation of the layers
 downsampling = 40
-axis = range(0, len(net.L1['mean']), downsampling)
+axis = range(0, len(net.lInp['mean']), downsampling)
 
 plt.figure(figsize=(15,15))
 plt.title('Activation value (mean and variance)')
-plt.plot(range(len(net.L1['mean'])), net.L1['mean'], color='red')
-plt.errorbar(axis, net.L1['mean'][::downsampling], net.L1['var'][::downsampling], linestyle='None', color='red')
+plt.plot(range(len(net.lInp['mean'])), net.lInp['mean'], color='red')
+plt.errorbar(axis, net.lInp['mean'][::downsampling], net.lInp['var'][::downsampling], linestyle='None', color='red')
 plt.show()
 
