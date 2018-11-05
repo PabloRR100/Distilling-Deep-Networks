@@ -223,7 +223,8 @@ plt.plot()
 
 
 # Evolution of the gradients
-from utils import normalize_gradients
+from utils import extract_dictgrads
+normgrads = extract_dictgrads(net)
 xaxis = range(len(Winp_stats['mean']))
 plt.figure(figsize=(15,15))
 ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=1)
@@ -234,7 +235,7 @@ sns.lineplot(xaxis, net.weight_stats['gradWinp'], ax=ax1, color='blue').set_titl
 sns.lineplot(xaxis, net.weight_stats['gradWout'], ax=ax2, color='red').set_title('grad W2')
 sns.lineplot(xaxis, net.weight_stats['gradWinp'], ax=ax3, color='blue', label='grad W1')
 sns.lineplot(xaxis, net.weight_stats['gradWout'], ax=ax3, color='red', label='grad W2')
-[sns.kdeplot(normgrads[i], shade=True, clip=(-1.5, 1.5), ax=ax4) for i in range(len(grads[0]))]
+[sns.kdeplot(normgrads[i], shade=True, clip=(-1.5, 1.5), ax=ax4) for i in normgrads.keys()]
 plt.plot()
 
 
