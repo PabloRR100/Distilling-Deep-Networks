@@ -100,10 +100,10 @@ def extract_dictgrads(net):
     normgrads = normalize_gradients(grads, type='standard')
     
     dictgrads = OrderedDict()
-    dictgrads['W_inp'] = normgrads[0]
+    dictgrads['dW Inp'] = normgrads[0]
     for i in range(1,len(normgrads)):
-        dictgrads['W hid {}'.format(i)] = normgrads[i]
-    dictgrads['W out'] = normgrads[-1]
+        dictgrads['dW Hid {}'.format(i)] = normgrads[i]
+    dictgrads['dW Out'] = normgrads[-1]
     return dictgrads
     
 
