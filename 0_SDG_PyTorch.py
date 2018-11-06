@@ -245,9 +245,10 @@ distribution_of_graphs(net)
 
 
 # Ratio weight / updata (should be around 1e-3)
-fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15,15))
-sns.lineplot(xaxis, W1_scale, label='W1 ratio', ax=axs[0])
-sns.lineplot(xaxis, W2_scale, label='W2 ratio', ax=axs[1])
+fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(15,15))
+sns.lineplot(xaxis, Winp_scale, label='W1 ratio', ax=axs[0])
+sns.lineplot(xaxis, Whid_scale[1], label='W1 ratio', ax=axs[1])
+sns.lineplot(xaxis, Wout_scale, label='W2 ratio', ax=axs[2])
 plt.plot()
 
 
@@ -259,5 +260,8 @@ plt.figure(figsize=(15,15))
 plt.title('Activation value (mean and variance)')
 plt.plot(range(len(net.lInp['mean'])), net.lInp['mean'], color='red')
 plt.errorbar(axis, net.lInp['mean'][::downsampling], net.lInp['var'][::downsampling], linestyle='None', color='red')
+for l in range(net.n_lay):
+    plt.plot(range(len(net.lHid[l]['mean'])), net.lHid[l]['mean'])
+    plt.errorbar(axis, net.lHid[l]['mean'][::downsampling], net.lHid['var'][l][::downsampling], linestyle='None')
 plt.show()
 
