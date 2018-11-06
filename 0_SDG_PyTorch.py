@@ -23,6 +23,7 @@ Created on Thu Nov  1 09:47:02 2018
 '''
 
 
+import pickle
 import numpy as np
 from sklearn.datasets import make_moons
 from sklearn.model_selection import train_test_split
@@ -153,6 +154,7 @@ for epoch in range(EPOCHS):
     print('Epoch {} -- Validation: Loss: {}, Accy: {}'
           .format(epoch, lss, acc))
 
+torch.save(torchnet, 'torchnet.pkl')
 
 
 # Plot Predictions

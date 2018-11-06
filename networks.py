@@ -70,7 +70,7 @@ class TorchNet(nn.Module):
         self.n_lay = n_layers
         self.fcInp = nn.Linear(inp, hid, bias=False)
         
-        self.fcHid = nn.ModuleList([nn.Linear(hid, hid) for _ in range(self.n_lay)])        
+        self.fcHid = nn.ModuleList([nn.Linear(hid, hid, bias=False) for _ in range(self.n_lay)])        
         self.fcOut = nn.Linear(hid, out, bias=False)
         
         if actf == 'relu': self.actf = nn.ReLU(inplace=True)
