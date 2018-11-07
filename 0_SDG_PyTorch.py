@@ -56,11 +56,13 @@ df_test = to_df(X_test, y_test)
 inp_dim = 2
 n_layers = 2
 lay_size = 100
-learning_rate = 0.1
 n_class = len(np.unique(y_train))
 
 EPOCHS = 10
 BATCHSIZE = 64
+learning_rate = 0.1
+momentum = 0
+weight_decay = 0
 
 
 pytorch = dict(train_loss = list(), train_accy = list(), 
@@ -85,7 +87,7 @@ from networks import TorchNet
 torchnet = TorchNet(inp_dim, n_class, lay_size, n_layers)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum=0, weight_decay=0)
+optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum, weight_decay)
 
 
 torchnet.train()
