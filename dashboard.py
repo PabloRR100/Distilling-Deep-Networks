@@ -38,6 +38,9 @@ Winp_scale = net.weight_stats['rWinp']
 Whid_scale = net.weight_stats['rWhid']
 Wout_scale = net.weight_stats['rWout']
 
+xaxis = range(len(Winp_stats['mean']))
+
+
 
 # Dashboard Layout
 # ----------------
