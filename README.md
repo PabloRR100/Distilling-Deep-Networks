@@ -1,10 +1,12 @@
 # Distilling-Deep-Networks
 
-Looking to code from scratch and analyze behavior of Networks.
+The idea of this project is to create a python decorator that could be plugged into a model (should be PyTorch with specific configuration to define the layers) and will inherit the model adding the necessary attributes and methods to keep track of the training statistics and build an interactive dashboard to explore those stats.  
 
-- Distribution of weights at every layer
-- Evolution of the ratio of weights and update steps
-- Code and try different Optimizers
+Previous to the construction of the dashboard it is essential to determine the statistics we are interested in:  
+- Distribution of weights  
+- Distribution of the gradients  
+- Evolution of the ratio of weights and update steps   
+- Code and try different Optimizers to compare statistics in different regimes    
 
 
 ---
