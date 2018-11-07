@@ -178,7 +178,7 @@ app.layout = html.Div([
     
     html.Div([
             
-        # Squiggle Logo
+        # DasLAB Logo
         html.Div([
             html.A([
                 html.Img(src='https://static.scholar.harvard.edu/files/styles/os_files_xxlarge/public/stratos/files/short_logo_seas_shield_dark.png?m=1499735141&itok=-7Y9nAsB', 
@@ -186,7 +186,7 @@ app.layout = html.Div([
             ], href='https://github.com/Lab41/squiggle')
         ], className = 'three columns', style={'text-align':'left', 'padding-left':'40px',}),
 
-        # Welcome to Squiggle
+        # Network Analyzer
         html.Div([
             html.H1('Network Analyzer', style={'fontColor':'white'})
         ], className = 'six columns', style={'margin': '0 auto'}),
