@@ -31,11 +31,13 @@ from sklearn.model_selection import train_test_split
 # DATASETS
 # --------
 
+from data import load_dataset
 from utils import to_df, scatterplot
 
-X, y = make_moons(n_samples=5000, random_state=42, noise=0.1)
-df = to_df(X, y)
-df.head()
+dataset = 'moons'
+
+X, y = load_dataset(name=dataset, visualize=True)
+
 
 #scatterplot([df])
 

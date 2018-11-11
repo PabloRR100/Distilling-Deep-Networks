@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import torch
+from utils import timeit
 from torch.autograd import Variable
 
+#@timeit
 def train_epoch(model, tr_loader, criterion, optimizer, lr, results):
     
     train_loss = 0     
@@ -36,8 +38,8 @@ def train_epoch(model, tr_loader, criterion, optimizer, lr, results):
         
     lss = round((train_loss / i+1), 3)
     acc = round((correct / total) * 100, 2)
-    results['train_accy'].append(acc)    
-    results['train_loss'].append(lss)
+    results.train_accy.append(acc)    
+    results.train_loss.append(lss)
     return lss, acc
 
 
@@ -66,6 +68,6 @@ def valid_epoch(model, ts_loader, criterion, results):
     
     lss = round((valid_loss/i+1), 3)
     acc = round((correct / total) * 100, 3)
-    results['valid_loss'].append(lss)
-    results['valid_accy'].append(acc)
+    results.valid_loss.append(lss)
+    results.valid_accy.append(acc)
     return lss, acc

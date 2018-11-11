@@ -12,7 +12,7 @@ Created on Thu Nov  1 09:47:02 2018
     - Allowing to track network capacities
 - [] Extend all the plots to that extension
 
- - [~] Timeit one epoch pass scratch/torch sgd/momentum
+ - [~] Timeit one epoch pass scratch/torch sgd/MOMEMTUM
  - [X] Compute hidden values sizes
  - [~] Track the saturation of every layer --> Plot not very promising ** s
  - [] Track plots of inference on test set at different times of the training:
@@ -23,116 +23,107 @@ Created on Thu Nov  1 09:47:02 2018
      
 '''
 
-import pickle
-import numpy as np
-from sklearn.datasets import make_moons, make_classification, load_iris, load_digits
-from sklearn.model_selection import train_test_split
 
-
-# DATASETS
-# --------
-
-from utils import to_df, scatterplot
-
-## Make moon dataset
-X, y = make_moons(n_samples=5000, random_state=42, noise=0.1)
-df = to_df(X, y)
-
-
-## Iris dataset
-#iris = load_iris()
-#X = iris.data[:, :]
-#y = iris.target
-
-
-## NIST Dataset -- 8x8 digits 1000 images
-#nist = load_digits()
-#X = nist.data
-#y = nist.target
-
-
-# Make random classification dataset
-#X, y = make_classification(n_samples=1000, n_features=20, n_informative=2, n_redundant=2, 
-#                    n_repeated=0, n_classes=2, n_clusters_per_class=2, random_state=42)
-
-
-#scatterplot([df])
-
-
-# Split the data for training and testing
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
-
-#df_train = to_df(X_train, y_train)
-#df_test = to_df(X_test, y_test)
-#scatterplot([df, df_train, df_test], ['Original data', 'Training set', 'Test set'])
-
-
-
-# NEURAL NETWORK CONFIG
-# ---------------------
-
-inp_dim = X_train.shape[1]
-n_layers = 2
-lay_size = 10
-n_class = len(np.unique(y_train))
-
-EPOCHS = 100
-BATCHSIZE = 16
-learning_rate = 0.01
-momentum = 0
-weight_decay = 0
-nesterov = False
-
-results = dict(train_loss = list(), train_accy = list(), 
-               valid_loss = list(), valid_accy = list())
-
-
-# Training PyTorch Model
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 
+''' OPTIMIZER PARAMETERS - Analysis on those '''
+LR = 0.01
+EPOCHS = 100
+BATCHSIZE = 16
+MOMEMTUM = 0
+WEIGHT_DECAY = 0
+NESTEROV = False
 
-# Define Data Loaders
-# --------------------
-## PyTorch does not use onehotencoded
+
+# Choose Dataset
+# --------------
+
+dataset = 'moons';  visualize = False
+#dataset = 'iris';   visualize = False
+#dataset = 'digits'; visualize = False
+
+from data import load_dataset
+X, y = load_dataset(name=dataset, visualize=visualize)
+
+
+# Split the data for training and testing
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+#df_train = to_df(X_train, y_train); #df_test = to_df(X_test, y_test)
+#scatterplot([df, df_train, df_test], ['Original data', 'Training set', 'Test set'])
+
 from utils import create_torch_dataset
-    
 tr_loader = create_torch_dataset(X_train, y_train, BATCHSIZE, shuffle=True)
 ts_loader = create_torch_dataset(X_test, y_test, BS=BATCHSIZE, shuffle=True)
 
 
-# Define Network
-# --------------    
+# Config Neural Network
+# ---------------------
 
-from models.fcnn import TorchNet
-from train_valid_test import train_epoch, valid_epoch
-
-torchnet = TorchNet(inp_dim, n_class, lay_size, n_layers, track_stats=False, recursive=2)
-
+n_layers = 2                                                # Number of hidden Layers
+lay_size = 4                                               # Width of hidden layers
+inp_dim = X_train.shape[1]                                  # Input dimension
+n_class = len(np.unique(y_train))                           # Output dimension
 
 # Define Training
-# ---------------
+# --------------    
 
+from train_valid_test import train_epoch, valid_epoch
+def train(model, criterion, optimizer, results, EPOCHS, LR):
+    for epoch in range(EPOCHS):    
+        
+        # Training
+        model.train()
+        lss, acc = train_epoch(model, tr_loader, criterion, optimizer, LR, results)
+        print('Epoch {} -- Training: Loss: {}, Accy: {}'.format(epoch, lss, acc))
+        
+        # Validation
+        model.eval()
+        
+        lss, acc = valid_epoch(model, ts_loader, criterion, results)    
+        print('Epoch {} -- Validation: Loss: {}, Accy: {}'.format(epoch, lss, acc))
+    
+
+# torch.save(model, model.name + 'model.pkl')
+
+
+
+################################################################
+        # Run Experiments
+        
+################################################################
+
+models = []
+
+from utils import Results
+from models.fcnn import TorchNet
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum, weight_decay, nesterov=nesterov)
 
-for epoch in range(EPOCHS):    
+#results = dict(train_loss = [], train_accy = [], valid_loss = [], valid_accy = [])
+results = []
+
+# Create variants of different models to compare
+model = TorchNet('No_Recursive', inp_dim, n_class, lay_size, n_layers, track_stats=False, recursive=0)
+model2 = TorchNet('Recursive_2', inp_dim, n_class, lay_size, n_layers, track_stats=False, recursive=2)
+model5 = TorchNet('Recursive_5', inp_dim, n_class, lay_size, n_layers, track_stats=False, recursive=5)
+
+# Select models to train
+models += [model, model2, model5]
+
+for model in models:
     
-    # Training
-    torchnet.train()
-    lss, acc = train_epoch(torchnet, tr_loader, criterion, optimizer, learning_rate, results)
-    print('Epoch {} -- Training: Loss: {}, Accy: {}'.format(epoch, lss, acc))
-    
-    # Validation
-    torchnet.eval()
-    
-    lss, acc = valid_epoch(torchnet, ts_loader, criterion)    
-    print('Epoch {} -- Validation: Loss: {}, Accy: {}'.format(epoch, lss, acc))
+    r = Results()
+    optimizer = optim.SGD(model.parameters(), LR, MOMEMTUM, WEIGHT_DECAY, nesterov=NESTEROV)
+    model_no_recursive_params = [model, criterion, optimizer, r]
+    train_no_recursive_params = [EPOCHS, LR]
+    train(*model_no_recursive_params, *train_no_recursive_params)
+    results.append(r)
 
 
-# torch.save(torchnet, 'torchnet.pkl')
 
 
 # ANALYIS
@@ -140,34 +131,43 @@ for epoch in range(EPOCHS):
 
 import pandas as pd
 import seaborn as sns
+from utils import to_df
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
 # Performance Analysis
 # ---------------------
 
-y_pred_all = torchnet(Variable(torch.tensor(X_test, dtype=torch.float32)))
-y_pred_all = torch.max(y_pred_all.data, 1)[1].detach().numpy()
-    
-# Targets vs Predictions (Only for 2D Inputs)
-if X_train.shape[1] == 2:
-    
-    from utils import true_vs_pred
-    df_test = to_df(X_test, y_test)
-    df_pred = to_df(X_test, y_pred_all)
-    
-    true_vs_pred(df_test, df_pred)
+## TODO: for model in models:
+confusion_matrices = []
+for m, model in enumerate(models):
 
-# Confusion Matrix
-confusion_matrix(y_test, y_pred_all)
+    y_pred_all = model(Variable(torch.tensor(X_test, dtype=torch.float32)))
+    y_pred_all = torch.max(y_pred_all.data, 1)[1].detach().numpy()
+    
+    # Targets vs Predictions (Only for 2D Inputs)
+    if X_train.shape[1] == 2:
+        
+        from utils import true_vs_pred
+        df_test = to_df(X_test, y_test)
+        df_pred = to_df(X_test, y_pred_all)
+        
+        true_vs_pred(df_test, df_pred)
+
+    # Confusion Matrix
+    confusion_matrices.append(confusion_matrix(y_test, y_pred_all))
 
 
 # Train Validation Loss Accuracy
 fig, axs = plt.subplots(nrows=2, ncols=1)
-sns.lineplot(range(EPOCHS), results['train_loss'], label='Training', ax=axs[0])
-sns.lineplot(range(EPOCHS), results['valid_loss'], label='Validation', ax=axs[0])
-sns.lineplot(range(EPOCHS), results['train_accy'], label='Training', ax=axs[1])
-sns.lineplot(range(EPOCHS), results['valid_accy'], label='Validation', ax=axs[1])
+def lab(a,m):
+    if a == 'T': return 'Training {}'.format(m.name)
+    else: return 'Validation {}'.format(m.name)
+for i, r in enumerate(results):
+    sns.lineplot(range(EPOCHS), r.train_loss, label=lab('T',models[i]), ax=axs[0])
+    sns.lineplot(range(EPOCHS), r.valid_loss, label=lab('V',models[i]), ax=axs[0])
+    sns.lineplot(range(EPOCHS), r.train_accy, label=lab('T',models[i]), ax=axs[1])
+    sns.lineplot(range(EPOCHS), r.valid_accy, label=lab('V',models[i]), ax=axs[1])
 axs[0].set_title('Loss')
 axs[1].set_title('Accuracy')
 plt.plot()
@@ -177,7 +177,7 @@ plt.plot()
 # Network Analysis
 # -----------------
 
-net = torchnet
+net = model
 
 Winp_stats = net.weight_stats['Winp']
 Whid_stats = net.weight_stats['Whid']

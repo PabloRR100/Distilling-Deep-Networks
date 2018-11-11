@@ -9,6 +9,16 @@ from collections import OrderedDict
 # GENERAL USE
 # -----------
 
+class Results():
+    ''' Object to store training / validation results'''
+    def __init__(self):
+        super(Results, self).__init__()
+        self.train_loss = [] 
+        self.train_accy = []
+        self.valid_loss = []
+        self.valid_accy = []
+
+
 def timeit(method):
     def timed(*args, **kw):
         ts = time.time()
@@ -47,12 +57,15 @@ def scatterplot(dfs:list, titles:list = [None]):
     
 
 def true_vs_pred(df_test, df_pred):
+    # If the network is outputing all to one single class:
+    s = len(df_pred['y'].unique())
+    
     fig, axs = plt.subplots(ncols=2, figsize=(15,15))
     sns.scatterplot(x='X1', y='X2', hue='y', data=df_test, 
                     legend=False, palette=sns.color_palette("Set1", n_colors=2),
                     ax=axs[0]).set_title('Real Distribution')
     sns.scatterplot(x='X1', y='X2', hue='y', data=df_pred, 
-                    legend=False, palette=sns.color_palette("Set2", n_colors=2),
+                    legend=False, palette=sns.color_palette("Set2", n_colors=s),
                     ax=axs[1]).set_title('Predicted Distribution')
     plt.title('Prediction results')
     plt.plot()

@@ -56,14 +56,15 @@ class TorchNet(nn.Module):
     ''' Same network using PyTorch '''
     
     
-    def __init__(self, inp:int, out:int, hid:int,  n_layers:int, actf: str = 'relu', 
-                 recursive=None, track_stats=True, print_sizes=False):
+    def __init__(self, name:str, inp:int, out:int, hid:int,  n_layers:int, 
+                 actf: str = 'relu', recursive=None, track_stats=True, print_sizes=False):
         super(TorchNet, self).__init__()
         
         opt = ['relu', 'sigm', 'tanh']
         err = 'Select a correct activation function from: {}'.format(opt)
         assert actf in opt, err
         
+        self.name = name
         self.n_lay = n_layers
         self.fcInp = nn.Linear(inp, hid, bias=False)
         
@@ -71,8 +72,8 @@ class TorchNet(nn.Module):
         self.fcOut = nn.Linear(hid, out, bias=False)
 
         self.p = print_sizes          
-        self.recursive = recursive
         self.track_stats = track_stats
+        self.recursive = None if recursive == 0 else recursive
         
         if actf == 'relu': self.actf = nn.ReLU(inplace=True)
         if actf == 'sigm': self.actf = nn.Sigmoid()
