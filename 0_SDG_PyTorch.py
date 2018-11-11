@@ -25,7 +25,7 @@ Created on Thu Nov  1 09:47:02 2018
 
 import pickle
 import numpy as np
-from sklearn.datasets import make_moons
+from sklearn.datasets import make_moons, load_iris
 from sklearn.model_selection import train_test_split
 
 # DATASETS
@@ -33,9 +33,16 @@ from sklearn.model_selection import train_test_split
 
 from utils import to_df, scatterplot
 
-X, y = make_moons(n_samples=5000, random_state=42, noise=0.1)
-df = to_df(X, y)
-df.head()
+## Make moon dataset
+#X, y = make_moons(n_samples=5000, random_state=42, noise=0.1)
+#df = to_df(X, y)
+#df.head()
+
+# Iris dataset
+iris = load_iris()
+X = iris.data[:, :2]  # we only take the first two features.
+y = iris.target
+
 
 #scatterplot([df])
 
@@ -55,15 +62,15 @@ df_test = to_df(X_test, y_test)
 
 inp_dim = 2
 n_layers = 2
-lay_size = 100
+lay_size = 3
 n_class = len(np.unique(y_train))
 
-EPOCHS = 10
-BATCHSIZE = 64
-learning_rate = 0.1
+EPOCHS = 100
+BATCHSIZE = 32
+learning_rate = 0.01
 momentum = 0
 weight_decay = 0
-
+nesterov = False
 
 pytorch = dict(train_loss = list(), train_accy = list(), 
                valid_loss = list(), valid_accy = list())
@@ -83,11 +90,12 @@ tr_loader = create_torch_dataset(X_train, y_train, BATCHSIZE, shuffle=True)
 ts_loader = create_torch_dataset(X_test, y_test, BS=BATCHSIZE, shuffle=False)
 
     
-from networks import TorchNet
-torchnet = TorchNet(inp_dim, n_class, lay_size, n_layers)
+from models.fcnn import TorchNet
+#torchnet = TorchNet(inp_dim, n_class, lay_size, n_layers)
+torchnet = TorchNet(inp_dim, n_class, lay_size, n_layers, track_stats=False, recursive=5)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum, weight_decay)
+optimizer = optim.SGD(torchnet.parameters(), learning_rate, momentum, weight_decay, nesterov=nesterov)
 
 
 torchnet.train()
@@ -130,6 +138,7 @@ for epoch in range(EPOCHS):
           .format(epoch, lss, acc))
     
     # Validation
+    correct, total = 0, 0
     for i, (X, labels) in enumerate(ts_loader):
         
         X, labels = Variable(X), Variable(labels)
@@ -141,10 +150,10 @@ for epoch in range(EPOCHS):
         # Compute loss 
         loss = criterion(y_pred, labels)           
         
-    # Compute and store epoch results
-    correct, total = 0, 0
-    total += y_pred.size(0)
-    correct += int(sum(preds == labels)) 
+        # Compute and store epoch results
+        total += y_pred.size(0)
+        correct += int(sum(preds == labels)) 
+        
     accuracy = correct / total
     
     lss = round(loss.item(), 3)
@@ -156,10 +165,23 @@ for epoch in range(EPOCHS):
     print('Epoch {} -- Validation: Loss: {}, Accy: {}'
           .format(epoch, lss, acc))
 
-torch.save(torchnet, 'torchnet.pkl')
+
+# torch.save(torchnet, 'torchnet.pkl')
 
 
-# Plot Predictions
+# ANALYIS
+#####################################################
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+
+# Performance Analysis
+# ---------------------
+
+# Targets vs Predictions  
+
 from utils import true_vs_pred
 y_pred_all = torchnet(Variable(torch.tensor(X_test, dtype=torch.float32)))
 y_pred_all = torch.max(y_pred_all.data, 1)[1].detach().numpy()
@@ -169,14 +191,24 @@ df_pred = to_df(X_test, y_pred_all)
 
 true_vs_pred(df_test, df_pred)
 
+# Confusion Matrix
+confusion_matrix(y_test, y_pred_all)
 
 
-# PyTorch Network Analysis
-# ------------------------
+# Train Validation Loss Accuracy
+fig, axs = plt.subplots(nrows=2, ncols=1)
+sns.lineplot(range(EPOCHS), pytorch['train_loss'], label='Training', ax=axs[0])
+sns.lineplot(range(EPOCHS), pytorch['valid_loss'], label='Validation', ax=axs[0])
+sns.lineplot(range(EPOCHS), pytorch['train_accy'], label='Training', ax=axs[1])
+sns.lineplot(range(EPOCHS), pytorch['valid_accy'], label='Validation', ax=axs[1])
+axs[0].set_title('Loss')
+axs[1].set_title('Accuracy')
+plt.plot()
 
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+
+
+# Network Analysis
+# -----------------
 
 net = torchnet
 
