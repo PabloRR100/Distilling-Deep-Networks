@@ -138,7 +138,6 @@ from sklearn.metrics import confusion_matrix
 # Performance Analysis
 # ---------------------
 
-## TODO: for model in models:
 confusion_matrices = []
 for m, model in enumerate(models):
 
