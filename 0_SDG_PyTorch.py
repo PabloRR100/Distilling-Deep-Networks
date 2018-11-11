@@ -14,14 +14,14 @@ Created on Thu Nov  1 09:47:02 2018
 
  - [~] Timeit one epoch pass scratch/torch sgd/momentum
  - [X] Compute hidden values sizes
- - [~] Track the saturation of every layer --> Plot not very promising **
+ - [~] Track the saturation of every layer --> Plot not very promising ** s
  - [] Track plots of inference on test set at different times of the training:
      - By saving a copy of the model each x epochs or by plotting every x epochs
      
  - [] Track the evolution of the INPUT to the activation functions
      - This is used to track how BatchNorm reduces Internal Covariance Shift
+     
 '''
-
 
 import pickle
 import numpy as np

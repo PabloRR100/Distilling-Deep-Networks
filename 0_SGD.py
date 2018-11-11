@@ -16,6 +16,9 @@ Created on Thu Nov  1 09:47:02 2018
          and if the heavy change of the var of the weights could be a good indicator
          
  - [] Report how big LR yields to exploding/vanishing gradient seen as [nan, nan]
+ 
+ - [] Include the option of Regularization to weights on the loss function
+ 
 '''
 
 
